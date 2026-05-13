@@ -96,6 +96,9 @@ python tagger.py
 - Model loading should happen once before the loop, not per image
 - Confidence values should be stored in `meme_tags.confidence` where available
 - OCR result stored as-is in `memes.ocr_text`
+- VLM: Qwen2.5-VL-3B-Instruct loaded in 4-bit via `bitsandbytes` (~2GB VRAM)
+- VLM is prompted to return JSON `{"caption": "...", "tags": [...]}` for structured output
+- Tesseract OCR is optional; Qwen2.5-VL handles embedded text extraction adequately
 
 ---
 
@@ -170,6 +173,7 @@ Shared configuration constants. Imported by all modules.
 - `INCOMING_DIR` — default ingestion directory (default: `~/Pictures/memes/incoming`)
 - `PHASH_THRESHOLD` — hamming distance threshold for duplicate detection (default: `10`)
 - `SUPPORTED_EXTENSIONS` — set of image extensions to scan
+- `VLM_MODEL` — HuggingFace model ID or local path for the vision-language model (default: `Qwen/Qwen2.5-VL-3B-Instruct`)
 
 ---
 

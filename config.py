@@ -6,4 +6,4 @@ PHASH_THRESHOLD = 10
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 # Local vision-language model identifier (HuggingFace repo or local path)
-VLM_MODEL = "Salesforce/blip-image-captioning-base"
+VLM_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"

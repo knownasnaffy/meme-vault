@@ -343,8 +343,8 @@ The system intentionally avoids:
 |---|---|
 | Language | Python |
 | Database | SQLite |
-| OCR | Tesseract OCR |
-| AI Models | Local vision-language models |
+| OCR | Tesseract OCR (optional) / Qwen2.5-VL built-in |
+| AI Models | Qwen2.5-VL-3B-Instruct (4-bit, ~2GB VRAM) via `transformers` + `bitsandbytes` |
 | UI | Qt (PyQt/PySide) |
 | Search | SQLite FTS / vector search (future) |
 
