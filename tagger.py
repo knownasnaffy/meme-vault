@@ -1,4 +1,3 @@
-import json
 import re
 import sys
 from datetime import datetime, timezone
@@ -25,25 +24,38 @@ def run_ocr(image: Image.Image) -> str:
 # VLM: caption + tags via Qwen2.5-VL
 # ---------------------------------------------------------------------------
 
-PROMPT = (
-    "Describe this image in one sentence, then list up to 8 relevant tags. "
-    "Respond as JSON: {\"caption\": \"...\", \"tags\": [\"...\"]}"
-)
+CAPTION_PROMPT = "Describe this image in one sentence."
+TAGS_PROMPT = "List up to 8 short tags for this image, comma-separated, no explanation."
 
 
 def load_vlm():
     """Load Qwen2.5-VL processor and model once. Returns (processor, model) or None."""
     try:
-        from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+        from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
         processor = AutoProcessor.from_pretrained(config.VLM_MODEL)
-        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        model = AutoModelForImageTextToText.from_pretrained(
             config.VLM_MODEL,
-            load_in_4bit=True,  # ~2GB VRAM via bitsandbytes
+            quantization_config=BitsAndBytesConfig(load_in_4bit=True),
         )
         return processor, model
     except ImportError as e:
         print(f"Warning: VLM unavailable ({e}) — skipping captioning", file=sys.stderr)
         return None
+
+
+def _query(processor, model, image: Image.Image, prompt: str) -> str:
+    messages = [{"role": "user", "content": [
+        {"type": "image", "image": image.convert("RGB")},
+        {"type": "text", "text": prompt},
+    ]}]
+    inputs = processor.apply_chat_template(
+        messages, add_generation_prompt=True, tokenize=True,
+        return_dict=True, return_tensors="pt",
+    ).to(model.device)
+    import torch
+    with torch.no_grad():
+        out = model.generate(**inputs, max_new_tokens=100)
+    return processor.decode(out[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
 
 
 def run_vlm(image: Image.Image, vlm) -> tuple[str, list[str]]:
@@ -52,27 +64,18 @@ def run_vlm(image: Image.Image, vlm) -> tuple[str, list[str]]:
         return "", []
 
     processor, model = vlm
-    messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": PROMPT}]}]
-    text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = processor(text=[text], images=[image.convert("RGB")], return_tensors="pt").to(model.device)
+    caption = _query(processor, model, image, CAPTION_PROMPT)
+    tags_raw = _query(processor, model, image, TAGS_PROMPT)
 
-    import torch
-    with torch.no_grad():
-        out = model.generate(**inputs, max_new_tokens=200)
-
-    # Decode only the newly generated tokens
-    generated = out[:, inputs["input_ids"].shape[1]:]
-    response = processor.decode(generated[0], skip_special_tokens=True).strip()
-
-    # Parse JSON response; fall back to raw text as caption if malformed
-    try:
-        data = json.loads(response[response.index("{"):response.rindex("}") + 1])
-        caption = data.get("caption", "").strip()
-        tags = [t.strip().lower() for t in data.get("tags", []) if t.strip()]
-    except (ValueError, KeyError):
-        caption = response
-        tags = list({w for w in re.findall(r"[a-z]{4,}", response.lower())
-                     if w not in {"with", "that", "this", "from", "have", "there", "their", "they"}})
+    # Parse comma-separated tags, normalise to lowercase
+    stopwords = {
+        "with", "that", "this", "from", "have", "there", "their", "they",
+        "when", "after", "before", "about", "would", "could", "should",
+    }
+    # Parse tags: split on commas, newlines, or spaces; normalise to lowercase
+    tags = [t.strip().lower() for t in re.split(r"[,\n\s]+", tags_raw) if t.strip()]
+    tags = [re.sub(r"[^a-z0-9 _-]", "", t) for t in tags]
+    tags = [t for t in tags if t and t not in stopwords][:8]
 
     return caption, tags
 
