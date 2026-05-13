@@ -39,6 +39,19 @@ def init_schema(conn: sqlite3.Connection):
         CREATE VIRTUAL TABLE IF NOT EXISTS memes_fts USING fts5(
             caption, ocr_text, content='memes', content_rowid='id'
         );
+
+        CREATE TRIGGER IF NOT EXISTS memes_ai AFTER INSERT ON memes BEGIN
+            INSERT INTO memes_fts(rowid, caption, ocr_text) VALUES (new.id, new.caption, new.ocr_text);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS memes_ad AFTER DELETE ON memes BEGIN
+            INSERT INTO memes_fts(memes_fts, rowid, caption, ocr_text) VALUES ('delete', old.id, old.caption, old.ocr_text);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS memes_au AFTER UPDATE ON memes BEGIN
+            INSERT INTO memes_fts(memes_fts, rowid, caption, ocr_text) VALUES ('delete', old.id, old.caption, old.ocr_text);
+            INSERT INTO memes_fts(rowid, caption, ocr_text) VALUES (new.id, new.caption, new.ocr_text);
+        END;
     """)
     conn.commit()
 

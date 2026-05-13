@@ -49,6 +49,6 @@
 
 ## Phase 6: Polish
 
-- [ ] **6.1** Add `requirements.txt` (pytesseract, imagehash, PySide6 or PyQt6, and any model deps)
-- [ ] **6.2** Add a top-level `README.md` with setup and usage instructions for each script
-- [ ] **6.3** Smoke test full workflow: ingest → tag → review → search
+- [x] **6.1** Add `requirements.txt` (pytesseract, imagehash, PySide6 or PyQt6, and any model deps)
+- [x] **6.2** Add a top-level `README.md` with setup and usage instructions for each script
+- [x] **6.3** Smoke test full workflow: ingest → tag → review → search
