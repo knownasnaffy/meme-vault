@@ -41,9 +41,9 @@
 
 ## Phase 5: Search
 
-- [ ] **5.1** Create `search.py`: tag match (LIKE), FTS match on caption + ocr_text, merge + deduplicate results
-- [ ] **5.2** Add `--all` flag to include non-approved memes
-- [ ] **5.3** Test queries: tag-only, text-only, mixed, `--all`
+- [x] **5.1** Create `search.py`: tag match (LIKE), FTS match on caption + ocr_text, merge + deduplicate results
+- [x] **5.2** Add `--all` flag to include non-approved memes
+- [x] **5.3** Test queries: tag-only, text-only, mixed, `--all`
 
 ---
 
