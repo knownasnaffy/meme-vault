@@ -29,13 +29,13 @@
 
 ## Phase 4: Review UI
 
-- [ ] **4.1** Scaffold `review.py` Qt window: image preview panel, metadata panel, action bar
-- [ ] **4.2** Load next `status = 'review'` meme on launch and after each action
-- [ ] **4.3** Implement Approve (A), Reject (R), Skip (Space) with DB writes and `reviewed_at`
-- [ ] **4.4** Make caption, tags, ocr_text fields editable; persist edits on approve
-- [ ] **4.5** Implement perceptual hash computation (`imagehash.phash`) on image load
-- [ ] **4.6** Query and display similar meme thumbnails (hamming distance ≤ PHASH_THRESHOLD)
-- [ ] **4.7** End-to-end review test: approve, reject, skip, verify DB state
+- [x] **4.1** Scaffold `review.py` Qt window: image preview panel, metadata panel, action bar
+- [x] **4.2** Load next `status = 'review'` meme on launch and after each action
+- [x] **4.3** Implement Approve (A), Reject (R), Skip (Space) with DB writes and `reviewed_at`
+- [x] **4.4** Make caption, tags, ocr_text fields editable; persist edits on approve
+- [x] **4.5** Implement perceptual hash computation (`imagehash.phash`) on image load
+- [x] **4.6** Query and display similar meme thumbnails (hamming distance ≤ PHASH_THRESHOLD)
+- [x] **4.7** End-to-end review test: approve, reject, skip, verify DB state
 
 ---
 

@@ -20,7 +20,7 @@ Do not make assumptions about what has been built. Check the actual files.
 
 - Pick the next unchecked task in `docs/tasks.md`, working top to bottom
 - Complete one task fully before moving to the next
-- After completing a task, mark it done by changing `- [ ]` to `- [x]`
+- After completing a task, mark it done by changing `- [ ]` to `- [x]` **immediately** — do not wait until the end of the session to mark multiple tasks at once
 - If a task is partially done or blocked, add a short note inline:
   ```
   - [ ] **3.2** Integrate local VLM — blocked: model path not configured
@@ -44,6 +44,18 @@ Do not rewrite, reorder, or remove tasks. If new tasks are needed, append them t
 - All modules import config from `config.py` — do not hardcode paths or constants
 - All DB access goes through `database.py` — do not open raw SQLite connections elsewhere
 - Keep each script focused on its single responsibility per `docs/specs.md`
+
+---
+
+## Python Environment
+
+This project uses a `.venv` virtual environment. Always run Python via:
+
+```
+.venv/bin/python
+```
+
+Do not use the system `python` or `python3`. Do not use `pip` directly — use `.venv/bin/pip` if package installation is needed.
 
 ---
 
