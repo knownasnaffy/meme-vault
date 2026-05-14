@@ -32,6 +32,19 @@ CAPTION_PROMPT = "Describe this image in one sentence."
 TAGS_PROMPT = "List up to 8 short tags for this image, comma-separated, no explanation."
 
 
+def _gpu_max_memory() -> dict | None:
+    """Cap GPU usage at 90% of free VRAM, spill remainder to CPU RAM."""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return None
+        free, _ = torch.cuda.mem_get_info(0)
+        cap_mib = int(free * 0.90 / 1024 ** 2)
+        return {0: f"{cap_mib}MiB", "cpu": "16GiB"}
+    except Exception:
+        return None
+
+
 def load_vlm():
     """Load Qwen2.5-VL processor and model once. Returns (processor, model) or None."""
     try:
@@ -40,6 +53,8 @@ def load_vlm():
         model = AutoModelForImageTextToText.from_pretrained(
             config.VLM_MODEL,
             quantization_config=BitsAndBytesConfig(load_in_4bit=True),
+            device_map="auto",
+            max_memory=_gpu_max_memory(),
         )
         return processor, model
     except ImportError as e:
@@ -127,6 +142,8 @@ def load_embedder():
             config.EMBEDDING_MODEL,
             trust_remote_code=True,
             model_kwargs={"modality": "vision"},
+            device_map="auto",
+            max_memory=_gpu_max_memory(),
         )
     except ImportError as e:
         print(f"Warning: sentence-transformers unavailable ({e}) — skipping embeddings", file=sys.stderr)
