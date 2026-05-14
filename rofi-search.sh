@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 
+# Usage: rofi -show memes -modi memes:$PWD/rofi-search.sh -theme fullscreen-preview.rasi
+
 if [[ -n "$1" ]]; then
-    # User selected an entry
+    id="$(grep -oP '^\[\K[0-9]+(?=\])' <<< "$1")"
 
-    selected="$1"
+    result="$(./.venv/bin/python search.py --id "$id")"
 
-    echo "SELECTED: $selected" >> /tmp/rofi-meme.log
+    path="$(awk '
+    /^\[[0-9]+\]/ {
+        sub(/^\[[0-9]+\] /, "")
+        print
+    }
+    ' <<< "$result")"
 
-    feh "$selected" &
+    mime="$(file --mime-type -b "$path")"
+
+    i3-msg exec "xclip -selection clipboard -t \"$mime\" -i \"$path\"" >/dev/null
+    notify-send "Image copied" "$(basename "$path")"
     exit 0
 fi
 
@@ -15,12 +25,16 @@ output="$(./.venv/bin/python search.py)"
 
 echo "$output" | awk '
 BEGIN {
+    id=""
     path=""
     caption=""
     tags=""
 }
 
 /^\[[0-9]+\]/ {
+    match($0, /^\[([0-9]+)\]/, m)
+    id=m[1]
+
     sub(/^\[[0-9]+\] /, "")
     path=$0
 }
@@ -34,11 +48,10 @@ BEGIN {
     sub(/^  tags: /, "")
     tags=$0
 
-    label = caption " [" tags "]"
+    label = "[" id "] " caption " [" tags "]"
 
-    printf "%s\0icon\x1f%s\x1fmeta\x1f%s\n",
+    printf "%s\0icon\x1f%s\n",
         label,
-        path,
         path
 }
 '
