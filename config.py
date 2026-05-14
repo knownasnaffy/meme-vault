@@ -1,7 +1,7 @@
 from pathlib import Path
 
-DB_PATH = Path.home() / ".memevault" / "vault.db"
-INCOMING_DIR = Path.home() / "Pictures" / "memes" / "incoming"
+DB_PATH = Path.home() / ".local/share/memevault/vault.db"
+INCOMING_DIR = Path.home() / "Pictures" / "memes"
 PHASH_THRESHOLD = 10
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
