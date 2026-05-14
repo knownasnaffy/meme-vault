@@ -4,5 +4,5 @@ __pycache__/
 .env
 *.db
 *.sqlite
-~/.memevault/
-models
+.venv/
+models/
