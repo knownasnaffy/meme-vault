@@ -16,8 +16,8 @@ accelerate==1.13.0
 bitsandbytes==0.49.2
 qwen-vl-utils==0.0.14
 
-# Optional: OCR (Tesseract wrapper — requires system Tesseract installation)
-# pytesseract
+# OCR (requires system Tesseract installation)
+pytesseract==0.3.13
 
 # Embeddings
-sentence-transformers==4.1.0
+sentence-transformers==5.5.0

@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 
@@ -142,15 +143,12 @@ def run_embedding(embedder, image: Image.Image):
 # Main
 # ---------------------------------------------------------------------------
 
-def run(db_path: str = str(config.DB_PATH)):
+def run_vlm_pass(db_path: str):
+    """Pass 1: VLM (caption, tags, OCR)."""
     conn = database.get_db(db_path)
     rows = conn.execute("SELECT id, path FROM memes WHERE status = 'new'").fetchall()
-
     if not rows:
-        print("No new memes to process.")
         return
-
-    # --- Pass 1: VLM (caption, tags, OCR) ---
     vlm = load_vlm()
     for meme_id, path in rows:
         print(f"[VLM] [{meme_id}] {path}")
@@ -159,11 +157,9 @@ def run(db_path: str = str(config.DB_PATH)):
         except Exception as e:
             print(f"  Error opening image: {e}", file=sys.stderr)
             continue
-
         ocr_text = run_ocr(image)
         caption, tags = run_vlm(image, vlm)
         write_tags(conn, meme_id, tags)
-
         conn.execute(
             """UPDATE memes
                SET ocr_text = ?, caption = ?, processed_at = ?, status = 'review'
@@ -173,31 +169,71 @@ def run(db_path: str = str(config.DB_PATH)):
         conn.commit()
         print(f"  caption: {caption!r}  tags: {tags}  ocr: {ocr_text[:60]!r}")
 
-    # Unload VLM before loading embedder
-    if vlm is not None:
-        import torch
-        del vlm
-        torch.cuda.empty_cache()
 
-    # --- Pass 2: Embeddings ---
+def run_emb_pass(db_path: str):
+    """Pass 2: Embeddings."""
+    conn = database.get_db(db_path)
+    rows = conn.execute(
+        """SELECT m.id, m.path FROM memes m
+           LEFT JOIN meme_embeddings e ON e.meme_id = m.id
+           WHERE m.status = 'review' AND e.meme_id IS NULL"""
+    ).fetchall()
+    if not rows:
+        return
     embedder = load_embedder()
-    if embedder is not None:
-        for meme_id, path in rows:
-            print(f"[EMB] [{meme_id}] {path}")
-            try:
-                image = Image.open(path)
-            except Exception as e:
-                print(f"  Error opening image: {e}", file=sys.stderr)
-                continue
-            blob = run_embedding(embedder, image)
-            conn.execute(
-                "INSERT OR REPLACE INTO meme_embeddings (meme_id, embedding) VALUES (?, ?)",
-                (meme_id, blob),
-            )
-            conn.commit()
+    if embedder is None:
+        return
+    for meme_id, path in rows:
+        print(f"[EMB] [{meme_id}] {path}")
+        try:
+            image = Image.open(path)
+        except Exception as e:
+            print(f"  Error opening image: {e}", file=sys.stderr)
+            continue
+        blob = run_embedding(embedder, image)
+        conn.execute(
+            "INSERT OR REPLACE INTO meme_embeddings (meme_id, embedding) VALUES (?, ?)",
+            (meme_id, blob),
+        )
+        conn.commit()
 
+
+def _wait_for_gpu_memory(min_free_mib: int = 2048, timeout: int = 30):
+    """Poll nvidia-smi until at least min_free_mib MiB is free on GPU 0."""
+    import time
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            out = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
+                text=True,
+            )
+            free_mib = int(out.strip().splitlines()[0])
+            if free_mib >= min_free_mib:
+                return
+        except Exception:
+            return  # nvidia-smi unavailable, proceed anyway
+        time.sleep(1)
+    print(f"Warning: GPU did not free {min_free_mib} MiB within {timeout}s, proceeding anyway.", file=sys.stderr)
+
+
+def run(db_path: str = str(config.DB_PATH)):
+    conn = database.get_db(db_path)
+    rows = conn.execute("SELECT id, path FROM memes WHERE status = 'new'").fetchall()
+    if not rows:
+        print("No new memes to process.")
+        return
+    print(f"Processing {len(rows)} meme(s) in two passes...")
+    subprocess.run([sys.executable, __file__, "--vlm-only", db_path], check=True)
+    _wait_for_gpu_memory()
+    subprocess.run([sys.executable, __file__, "--emb-only", db_path], check=True)
     print(f"Done. Processed {len(rows)} meme(s).")
 
 
 if __name__ == "__main__":
-    run()
+    if len(sys.argv) > 1 and sys.argv[1] == "--vlm-only":
+        run_vlm_pass(sys.argv[2] if len(sys.argv) > 2 else str(config.DB_PATH))
+    elif len(sys.argv) > 1 and sys.argv[1] == "--emb-only":
+        run_emb_pass(sys.argv[2] if len(sys.argv) > 2 else str(config.DB_PATH))
+    else:
+        run()
