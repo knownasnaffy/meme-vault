@@ -36,6 +36,11 @@ def init_schema(conn: sqlite3.Connection):
             PRIMARY KEY (meme_id, tag_id)
         );
 
+        CREATE TABLE IF NOT EXISTS meme_embeddings (
+            meme_id   INTEGER PRIMARY KEY REFERENCES memes(id),
+            embedding BLOB NOT NULL
+        );
+
         CREATE VIRTUAL TABLE IF NOT EXISTS memes_fts USING fts5(
             caption, ocr_text, content='memes', content_rowid='id'
         );

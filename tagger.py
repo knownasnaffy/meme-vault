@@ -116,6 +116,29 @@ def write_tags(conn, meme_id: int, tags: list[str]):
 
 
 # ---------------------------------------------------------------------------
+# Embeddings: jina-embeddings-v5-omni-small
+# ---------------------------------------------------------------------------
+
+def load_embedder():
+    try:
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer(
+            config.EMBEDDING_MODEL,
+            trust_remote_code=True,
+            model_kwargs={"modality": "vision"},
+        )
+    except ImportError as e:
+        print(f"Warning: sentence-transformers unavailable ({e}) — skipping embeddings", file=sys.stderr)
+        return None
+
+
+def run_embedding(embedder, image: Image.Image):
+    import numpy as np
+    vec = embedder.encode_document(image)
+    return np.array(vec, dtype="float32").tobytes()
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -127,10 +150,10 @@ def run(db_path: str = str(config.DB_PATH)):
         print("No new memes to process.")
         return
 
+    # --- Pass 1: VLM (caption, tags, OCR) ---
     vlm = load_vlm()
-
     for meme_id, path in rows:
-        print(f"Processing [{meme_id}] {path}")
+        print(f"[VLM] [{meme_id}] {path}")
         try:
             image = Image.open(path)
         except Exception as e:
@@ -149,6 +172,29 @@ def run(db_path: str = str(config.DB_PATH)):
         )
         conn.commit()
         print(f"  caption: {caption!r}  tags: {tags}  ocr: {ocr_text[:60]!r}")
+
+    # Unload VLM before loading embedder
+    if vlm is not None:
+        import torch
+        del vlm
+        torch.cuda.empty_cache()
+
+    # --- Pass 2: Embeddings ---
+    embedder = load_embedder()
+    if embedder is not None:
+        for meme_id, path in rows:
+            print(f"[EMB] [{meme_id}] {path}")
+            try:
+                image = Image.open(path)
+            except Exception as e:
+                print(f"  Error opening image: {e}", file=sys.stderr)
+                continue
+            blob = run_embedding(embedder, image)
+            conn.execute(
+                "INSERT OR REPLACE INTO meme_embeddings (meme_id, embedding) VALUES (?, ?)",
+                (meme_id, blob),
+            )
+            conn.commit()
 
     print(f"Done. Processed {len(rows)} meme(s).")
 

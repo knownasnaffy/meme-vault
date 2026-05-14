@@ -18,3 +18,6 @@ qwen-vl-utils==0.0.14
 
 # Optional: OCR (Tesseract wrapper — requires system Tesseract installation)
 # pytesseract
+
+# Embeddings
+sentence-transformers==4.1.0

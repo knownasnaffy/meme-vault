@@ -52,3 +52,13 @@
 - [x] **6.1** Add `requirements.txt` (pytesseract, imagehash, PySide6 or PyQt6, and any model deps)
 - [x] **6.2** Add a top-level `README.md` with setup and usage instructions for each script
 - [x] **6.3** Smoke test full workflow: ingest → tag → review → search
+
+---
+
+## Phase 7: Embeddings
+
+- [x] **7.1** Add `meme_embeddings` table to `database.py` schema
+- [x] **7.2** Add `EMBEDDING_MODEL` constant to `config.py` (`jinaai/jina-embeddings-v5-omni-small-retrieval`)
+- [x] **7.3** Refactor `tagger.py` into two-pass: VLM pass (caption/tags/OCR), explicit unload, then embedding pass with `jina-v5-omni-small`
+- [x] **7.4** Add `--semantic` flag to `search.py` using cosine similarity over stored embeddings
+- [x] **7.5** Add `sentence-transformers` to `requirements.txt`
