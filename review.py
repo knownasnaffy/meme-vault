@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import imagehash
 from PIL import Image
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QKeySequence, QPixmap, QShortcut, qInstallMessageHandler
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -288,6 +288,7 @@ def main():
         pass  # column already exists
 
     app = QApplication(sys.argv)
+    qInstallMessageHandler(lambda mode, _ctx, msg: None if "icc" in msg.lower() else print(msg, file=sys.stderr))
     win = ReviewWindow(conn)
     win.resize(1100, 650)
     win.show()
