@@ -1,10 +1,12 @@
 """search.py — CLI search interface for MemeVault.
 
 Usage:
-    python search.py <query> [--all]
+    python search.py [<query>] [--all]
 
 Options:
     --all   Include non-approved memes (review, rejected, new)
+
+Omit <query> to list all entries.
 """
 
 import argparse
@@ -85,15 +87,35 @@ def print_results(results):
         print()
 
 
+def list_all(include_all: bool = False):
+    conn = get_db(str(DB_PATH))
+    conn.row_factory = lambda cur, row: dict(zip([c[0] for c in cur.description], row))
+    status_filter = "" if include_all else "WHERE m.status = 'approved'"
+    return conn.execute(
+        f"""
+        SELECT m.id, m.path, m.caption, m.ocr_text, m.status,
+               (SELECT GROUP_CONCAT(t.name, ', ')
+                FROM meme_tags mt JOIN tags t ON t.id = mt.tag_id
+                WHERE mt.meme_id = m.id) AS tags
+        FROM memes m {status_filter}
+        ORDER BY m.id
+        """
+    ).fetchall()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Search MemeVault")
-    parser.add_argument("query", help="Search query")
+    parser.add_argument("query", nargs="?", help="Search query (omit to list all)")
     parser.add_argument("--all", dest="include_all", action="store_true",
                         help="Include non-approved memes")
     args = parser.parse_args()
 
-    results = search(args.query, args.include_all)
-    print(f"{len(results)} result(s) for '{args.query}'\n")
+    if args.query:
+        results = search(args.query, args.include_all)
+        print(f"{len(results)} result(s) for '{args.query}'\n")
+    else:
+        results = list_all(args.include_all)
+        print(f"{len(results)} total entries\n")
     print_results(results)
 
 
