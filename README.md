@@ -25,10 +25,10 @@ python -m venv .venv
 ### Download the model
 
 ```bash
-.venv/bin/huggingface-cli download Qwen/Qwen2.5-VL-3B-Instruct --local-dir ./models/qwen2.5-vl-3b
+.venv/bin/hg download Qwen/Qwen2.5-VL-3B-Instruct --local-dir ./models/qwen2.5-vl-3b
 ```
 
-The model path is configured in `config.py` (`VLM_MODEL`). Change it if you store the model elsewhere.
+The model path is configured in `config.py` (`VLM_MODEL`). Change it if you store the model elsewhere or use a different model.
 
 ---
 

@@ -1,6 +1,9 @@
+import os
 import re
 import sys
 from datetime import datetime, timezone
+
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 from PIL import Image
 
@@ -43,19 +46,33 @@ def load_vlm():
         return None
 
 
+_MAX_IMAGE_SIZE = 512  # cap longest edge to limit visual tokens
+
+
+def _resize(image: Image.Image) -> Image.Image:
+    w, h = image.size
+    if max(w, h) <= _MAX_IMAGE_SIZE:
+        return image
+    scale = _MAX_IMAGE_SIZE / max(w, h)
+    return image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+
 def _query(processor, model, image: Image.Image, prompt: str) -> str:
+    import torch
     messages = [{"role": "user", "content": [
-        {"type": "image", "image": image.convert("RGB")},
+        {"type": "image", "image": _resize(image.convert("RGB"))},
         {"type": "text", "text": prompt},
     ]}]
     inputs = processor.apply_chat_template(
         messages, add_generation_prompt=True, tokenize=True,
         return_dict=True, return_tensors="pt",
     ).to(model.device)
-    import torch
     with torch.no_grad():
         out = model.generate(**inputs, max_new_tokens=100)
-    return processor.decode(out[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+    result = processor.decode(out[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+    del inputs, out
+    torch.cuda.empty_cache()
+    return result
 
 
 def run_vlm(image: Image.Image, vlm) -> tuple[str, list[str]]:
