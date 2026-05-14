@@ -4,16 +4,12 @@ Local-first AI-assisted meme archival and retrieval system.
 
 Organises image collections using a local vision-language model (Qwen2.5-VL-3B), perceptual hashing, and a keyboard-driven review UI. Everything runs on-device — no cloud APIs.
 
----
-
 ## Requirements
 
 - Python 3.10+
 - NVIDIA GPU with ~2 GB VRAM (for 4-bit VLM inference)
 - CUDA toolkit matching your PyTorch build
 - (Optional) [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) installed system-wide for standalone OCR
-
----
 
 ## Setup
 
@@ -30,8 +26,6 @@ python -m venv .venv
 
 The model path is configured in `config.py` (`VLM_MODEL`). Change it if you store the model elsewhere or use a different model.
 
----
-
 ## Configuration
 
 Edit `config.py` to adjust defaults:
@@ -43,8 +37,6 @@ Edit `config.py` to adjust defaults:
 | `PHASH_THRESHOLD` | `10` | Hamming distance for duplicate detection |
 | `SUPPORTED_EXTENSIONS` | jpg, jpeg, png, gif, webp | Image formats to scan |
 | `VLM_MODEL` | `./models/qwen2.5-vl-3b` | HuggingFace repo ID or local path |
-
----
 
 ## Workflow
 
@@ -64,8 +56,6 @@ Output: `N new, N skipped (duplicates)`
 
 Duplicate detection is SHA256-based — re-ingesting the same directory is safe.
 
----
-
 ### 2. Tag
 
 Process all `new` memes with the VLM to generate captions and tags:
@@ -77,8 +67,6 @@ Process all `new` memes with the VLM to generate captions and tags:
 Each image is captioned and tagged by Qwen2.5-VL (4-bit quantised). Results are written to the database and status is set to `review`.
 
 Tesseract OCR runs automatically if installed; otherwise the VLM handles embedded text.
-
----
 
 ### 3. Review
 
@@ -95,8 +83,6 @@ Launch the interactive review UI:
 | `Space` | Skip — move to next without changing status |
 
 The right panel shows editable caption, tags (comma-separated), and OCR text. Perceptually similar memes are shown as thumbnails below the metadata fields.
-
----
 
 ### 4. Search
 
@@ -120,8 +106,6 @@ Output:
   tags: tag1, tag2
   ocr: ...
 ```
-
----
 
 ## File Overview
 
